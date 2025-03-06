@@ -1,3 +1,5 @@
+package com.toursbooking.backend.models;
+
 import jakarta.persistence.*;
 import lombok.*;
 
