@@ -1,6 +1,6 @@
 package com.toursbooking.models;
 
-public enum Role {
+public enum UserRole {
     ADMIN,
     USER
 }

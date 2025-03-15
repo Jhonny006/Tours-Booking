@@ -5,35 +5,65 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import javax.management.relation.Role;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
-@Table(name ="users")
+@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @Column(nullable = false, unique = true) //indica que no puede sernullo, debe ser unico en la base de datos
+    @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(nullable = false) //no debe ser nulo, debe llevar un valor
+    @Column(nullable = false, unique = false)
+    private String email;
+
+    @Column(nullable = false)
     private String password;
 
-    @ElementCollection(targetClass = Role.class, fetch = FetchType.EAGER) //la base de datos el campo roles no es una entidad sino una coleccion de valores relacionados cone l usuario
+    @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn (name = "user_id"))
-    private Set<Role> roles;
-//targetClass = Role.class: Se especifica que los elementos de la colección son de tipo Role (una enumeración o clase que representa los roles del usuario).
-//fetch = FetchType.EAGER: Esto indica que los roles del usuario se deben cargar de inmediato cuando se cargue el usuario (en lugar de ser cargados de manera perezosa, cuando se necesiten). Esto mejora el rendimiento si los roles se usan con frecuencia al cargar la información del usuario.
-//Esto significa que el campo roles es una colección de objetos Role (probablemente una enumeración), que están asociados con el usuario. Cada usuario puede tener uno o más roles.
- //   @CollectionTable: Esta anotación define la tabla de la base de datos que almacenará la colección de roles.
-   // name = "user_roles": Especifica que la tabla en la base de datos donde se almacenarán los roles se llamará user_roles.
-     //       joinColumns = @JoinColumn(name = "user_id"): Especifica la columna que se utilizará para hacer la relación entre la tabla de los usuarios y la tabla de roles. El user_id será la clave foránea que relaciona un rol con un usuario.
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    private Set<com.toursbooking.models.UserRole> roles = new HashSet<>();
+
+    // Métodos de UserDetails
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return roles.stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
 }
