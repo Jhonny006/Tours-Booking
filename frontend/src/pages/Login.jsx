@@ -6,7 +6,16 @@ import Button from "../components/Button";
 const Login = () => {
     const [credentials, setCredentials] = useState({ email: "", password: "" });
     const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+
+    const validateForm = () => {
+        if (!credentials.email || !credentials.password) {
+            setError("Todos los campos son obligatorios");
+            return false;
+        }
+        return true;
+    };
 
     const handleChange = (e) => {
         setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -16,31 +25,43 @@ const Login = () => {
         e.preventDefault();
         setError(""); // Limpiar errores previos
 
-    //     try {
-    //         const response = await fetch("http://localhost:8080/api/login", {
-    //             method: "POST",
-    //             headers: { "Content-Type": "application/json" },
-    //             credentials: "include", // Enviar cookies (si usas JWT en cookies seguras)
-    //             body: JSON.stringify(credentials),
-    //         });
+        if (!validateForm()) return;
 
-    //         if (!response.ok) {
-    //             throw new Error("Credenciales incorrectas o usuario no encontrado");
-    //         }
+        setIsLoading(true);
+        try {
+            const response = await fetch("http://localhost:8080/api/auth/login", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                credentials: "include", // Enviar cookies (si usas JWT en cookies seguras)
+                body: JSON.stringify(credentials),
+            });
 
-    //         const data = await response.json();
-    //         console.log("Login exitoso:", data);
+            const data = await response.json();
 
-    //         // Guardar solo lo necesario en sessionStorage
-    //         sessionStorage.setItem("user", JSON.stringify({ email: credentials.email }));
+            if (!response.ok) {
+                throw new Error(data.message || "Error en el inicio de sesión");
+            }
 
-    //         // Redirigir al dashboard
-    //         navigate("/dashboard");
+            // Guardar el token JWT y datos básicos del usuario
+            localStorage.setItem("token", data.token);
+            sessionStorage.setItem("user", JSON.stringify({
+                email: credentials.email,
+                roles: data.roles,
+                id: data.userId
+            }));
 
-    //     } catch (error) {
-    //         console.error("Error en el login:", error);
-    //         setError("Usuario o contraseña incorrectos");
-    //     }
+            // Redirigir al dashboard
+            navigate("/dashboard");
+
+        } catch (error) {
+            console.error("Error en el login:", error);
+            setError(error.message || "Usuario o contraseña incorrectos");
+        } finally {
+            setIsLoading(false);
+        }
     };
     return (
         <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-blue-400 to-green-400 px-4">
